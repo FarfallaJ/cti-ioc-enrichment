@@ -91,6 +91,7 @@ that support its type, so a hash lookup never wastes a call on an IP-only feed.
 - **Orchestration agent** — chains enrichment into a tactical brief (BLUF,
   attribution, ATT&CK mapping, actions); deterministic, LLM-enhanced when a key is set.
 - **Detection generator** — emits Sigma, YARA, and Suricata rules from IOCs.
+- **Optional GUI** — a local Streamlit console in The Fusion Cell house style (`streamlit run app.py`).
 - **Secrets stay out of git** — keys load from the OS keyring or a gitignored
   `.env`; see [SECURITY.md](SECURITY.md).
 
@@ -150,10 +151,24 @@ analysis, neither tied to any vendor:
   or an OpenAI-compatible `LLM_BASE_URL` (e.g. a local Ollama server). The agent
   auto-detects the provider; force it with `LLM_PROVIDER`. Bring whichever you prefer.
 
+## GUI (optional)
+
+Prefer a point-and-click console? A Streamlit GUI wraps the same engine behind
+The Fusion Cell masthead — enrich an indicator, generate a tactical brief, or
+build detections, all in the browser.
+
+```bash
+pip install -r requirements.txt -r requirements-gui.txt
+streamlit run app.py
+```
+
+It runs locally and reads your keys exactly like the CLI — nothing is sent
+anywhere but the source APIs.
+
 ## Testing
 
 ```bash
-python -m pytest        # 20 tests, all HTTP mocked (no keys or network needed)
+python -m pytest        # 24 tests, all HTTP mocked (no keys or network needed)
 ```
 
 CI runs the suite on Python 3.10–3.12 on every push.
@@ -164,6 +179,7 @@ CI runs the suite on Python 3.10–3.12 on every push.
 - [x] Orchestration agent (enrichment → tactical brief)
 - [x] Detection-rule generator (Sigma / YARA / Suricata)
 - [x] OS-keyring secret storage + CI
+- [x] Streamlit GUI (Fusion Cell house style)
 - [ ] Bulk mode (CSV in, CSV + per-IOC briefs out)
 - [ ] Censys + passive-DNS sources
 

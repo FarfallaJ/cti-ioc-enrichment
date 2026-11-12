@@ -1,0 +1,4 @@
+# GUI extra — install alongside requirements.txt to run the Streamlit console:
+#   pip install -r requirements.txt -r requirements-gui.txt
+#   streamlit run app.py
+streamlit>=1.30.0
