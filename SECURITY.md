@@ -24,7 +24,9 @@ If a key is ever exposed (committed, shared, or stored in a synced document),
 treat it as compromised and regenerate it on the provider's site. Free-tier keys
 regenerate at no cost.
 
-## Reporting
+## Reporting a vulnerability
 
-This is a personal portfolio project. For any security concern, open a GitHub
-issue (without including live keys or sensitive indicators).
+This is a personal portfolio project. For a non-sensitive bug, open a GitHub
+issue — never include live keys or real indicators. For anything that should
+stay private, use the **Report a vulnerability** button under the repository's
+**Security** tab (a private GitHub security advisory) instead of a public issue.
