@@ -1,0 +1,20 @@
+title: Connection to Malicious IP 193.36.119.48
+id: bf355b54-c53f-95fb-ade8-3c179685894a
+status: experimental
+description: KV-botnet / Volt Typhoon SOHO-router C2 infrastructure (assessed indicator)
+author: FarfallaJ
+date: 2026/11/12
+references:
+    - https://otx.alienvault.com/indicator/IPv4/193.36.119.48
+tags:
+    - attack.t1584
+    - attack.t1105
+    - attack.t1595
+logsource:
+    category: firewall
+detection:
+    selection:
+        dst_ip:
+            - '193.36.119.48'
+    condition: selection
+level: high

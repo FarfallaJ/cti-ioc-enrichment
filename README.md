@@ -99,6 +99,18 @@ The brief is always produced deterministically. If `ANTHROPIC_API_KEY` is set,
 the agent upgrades it to full narrative analysis. See
 [`examples/sample_agent_brief.md`](examples/sample_agent_brief.md).
 
+### Detection-rule generator
+
+Turn indicators into deployable detections (Sigma + Suricata for network IOCs,
+Sigma + YARA for hashes):
+
+```bash
+python -m ioc_enrich.detect 193.36.119.48 44d88612fea8a8f36de82e1278abb02f \
+    --context "Volt Typhoon" --out rules/volt-typhoon/
+```
+
+A starter library lives in [`rules/`](rules/).
+
 ## Testing
 
 ```bash
@@ -108,7 +120,7 @@ python -m pytest        # logic tests (no API keys required)
 ## Roadmap
 
 - [x] **`agent/`** — chains enrichment → synthesis → tactical intel brief (LLM-enhanced, deterministic fallback)
-- [ ] Detection-rule generator (Sigma / YARA / Suricata) from enriched IOCs
+- [x] **Detection-rule generator** (Sigma / YARA / Suricata) — see `rules/`
 - [ ] Bulk mode (CSV in, CSV + per-IOC briefs out)
 - [ ] Additional sources: VirusTotal, URLScan, Censys
 

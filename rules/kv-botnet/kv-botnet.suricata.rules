@@ -1,0 +1,1 @@
+alert ip $HOME_NET any -> 193.36.119.48 any (msg:"CTI Malicious indicator 193.36.119.48 (KV-botnet / Volt Typhoon SOHO-router C2 infrastructure (assessed indicator))"; classtype:trojan-activity; reference:url,otx.alienvault.com/indicator/IPv4/193.36.119.48; sid:1000000; rev:1;)
