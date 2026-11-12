@@ -7,10 +7,16 @@ from .sources.base import SourceResult, Verdict
 
 # How much each source's score counts toward the aggregate.
 WEIGHTS = {
-    "otx": 1.0,         # community pulses tying IOC to known campaigns
+    "virustotal": 1.0,  # authoritative multi-engine reputation
+    "abusech": 1.0,     # known-malware / campaign membership
+    "otx": 0.9,         # community pulses tying IOC to known campaigns
     "abuseipdb": 0.9,   # crowd-sourced abuse reports
     "greynoise": 0.8,   # scanner / noise classification
-    "shodan": 0.5,      # exposure context, weaker as a verdict signal
+    "urlscan": 0.6,     # historical sandboxed scans
+    "shodan": 0.5,      # exposure context
+    "internetdb": 0.4,  # keyless exposure context
+    "rdap": 0.2,        # registration age signal
+    "crtsh": 0.0,       # pure pivot/context, no verdict weight
 }
 
 

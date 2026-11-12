@@ -1,2 +1,5 @@
 requests>=2.31.0
 python-dotenv>=1.0.0
+
+# Optional: store API keys in the OS keyring instead of a plaintext .env
+keyring>=24.0.0 ; python_version >= "3.8"

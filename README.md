@@ -2,59 +2,67 @@
 
 A multi-source **indicator-of-compromise enrichment and scoring engine** for
 cyber threat intelligence work. Give it an IP, domain, URL, or file hash and it
-fans out — in parallel — to **AlienVault OTX**, **AbuseIPDB**, **GreyNoise**,
-and **Shodan**, normalizes every response, and produces a single weighted
-verdict plus an analyst-ready brief.
+fans out — in parallel — across **ten** sources, normalizes every response, and
+produces a single weighted verdict, an analyst-ready brief, and deployable
+detection rules.
 
-Built to turn the repetitive first 10 minutes of triage — "is this IOC bad, and
+Built to turn the repetitive first minutes of triage — "is this IOC bad, and
 why?" — into one command.
 
+![tests](https://github.com/FarfallaJ/cti-ioc-enrichment/actions/workflows/tests.yml/badge.svg)
 ![python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
-![status](https://img.shields.io/badge/status-active-brightgreen)
 
 ---
 
-## Why it exists
+## Sources
 
-During triage an analyst pivots the same indicator across four or five tabs,
-mentally reconciles conflicting signals, and writes up a verdict. This tool does
-the fan-out and the first-pass scoring deterministically, so the analyst spends
-their time on judgment, not tab-switching. It is designed to feed a larger
-intel-production workflow (see **Roadmap**).
+| Source | Key | IP | Domain | URL | Hash | Signal |
+|---|:--:|:--:|:--:|:--:|:--:|---|
+| VirusTotal | yes | ✓ | ✓ | ✓ | ✓ | multi-engine reputation |
+| abuse.ch (ThreatFox) | yes | ✓ | ✓ | ✓ | ✓ | known-malware / campaign |
+| AlienVault OTX | yes | ✓ | ✓ | ✓ | ✓ | community pulses, attribution |
+| AbuseIPDB | yes | ✓ | | | | IP abuse confidence |
+| GreyNoise | yes | ✓ | | | | scanner-noise classification |
+| urlscan.io | yes | ✓ | ✓ | ✓ | | sandboxed scans, infra |
+| Shodan | yes | ✓ | | | | exposed services, CVEs |
+| Shodan InternetDB | **no** | ✓ | | | | keyless host exposure |
+| crt.sh | **no** | | ✓ | | | cert-transparency subdomains |
+| RDAP | **no** | ✓ | ✓ | | | registration & domain age |
+
+The three keyless sources always run. Each IOC is routed only to the sources
+that support its type, so a hash lookup never wastes a call on an IP-only feed.
 
 ## Features
 
 - **One input, any IOC** — auto-detects IPv4, domain, URL, MD5/SHA1/SHA256.
 - **Defang-aware** — accepts `193[.]36[.]119[.]48`, `hxxp://`, `[dot]`, etc.
-- **Parallel enrichment** across four sources via a clean adapter interface.
-- **Weighted verdict** — transparent scoring (0–100) with a "2+ sources
-  malicious floors the verdict" rule, not a black box.
-- **Analyst-ready output** — Markdown brief or structured JSON, with source
-  links for one-click verification and extracted pivots (malware families,
-  adversaries, ATT&CK IDs, open ports).
-- **Secrets stay local** — keys load from `.env`; nothing is hard-coded or
-  committed.
+- **Parallel, type-routed enrichment** across ten sources behind one adapter interface.
+- **Weighted verdict** — transparent 0–100 scoring, "2+ sources malicious floors
+  the verdict," per-source weights you can read in `aggregate.py`.
+- **Orchestration agent** — chains enrichment into a tactical brief (BLUF,
+  attribution, ATT&CK mapping, actions); deterministic, LLM-enhanced when a key is set.
+- **Detection generator** — emits Sigma, YARA, and Suricata rules from IOCs.
+- **Secrets stay out of git** — keys load from the OS keyring or a gitignored
+  `.env`; see [SECURITY.md](SECURITY.md).
 
 ## Architecture
 
 ```
 ioc_enrich/
-├── ioctypes.py     # IOC detection + defanging
-├── config.py       # API keys from environment / .env
-├── sources/        # one adapter per service -> normalized SourceResult
-│   ├── otx.py
-│   ├── abuseipdb.py
-│   ├── greynoise.py
-│   └── shodan.py
-├── engine.py       # parallel fan-out orchestration
-├── aggregate.py    # weighted scoring -> single verdict
-├── report.py       # Markdown brief renderer
-└── cli.py          # command-line interface
+├── ioctypes.py      # IOC detection + defanging
+├── config.py        # keys from OS keyring / .env; keyless registry
+├── sources/         # one adapter per feed -> normalized SourceResult
+│   ├── virustotal.py  urlscan.py   abusech.py
+│   ├── otx.py         abuseipdb.py greynoise.py  shodan.py
+│   └── internetdb.py  crtsh.py     rdap.py        (keyless)
+├── engine.py        # parallel, type-routed fan-out
+├── aggregate.py     # weighted scoring -> single verdict
+├── report.py        # Markdown brief
+├── agent/           # enrichment -> synthesized intel brief
+├── detect/          # Sigma / YARA / Suricata generation
+└── cli.py
 ```
-
-Each source adapter returns the same `SourceResult` shape, so adding a new
-feed (VirusTotal, URLScan, Censys…) is a single new file in `sources/`.
 
 ## Setup
 
@@ -62,72 +70,57 @@ feed (VirusTotal, URLScan, Censys…) is a single new file in `sources/`.
 git clone https://github.com/FarfallaJ/cti-ioc-enrichment.git
 cd cti-ioc-enrichment
 pip install -r requirements.txt
-cp .env.example .env     # then paste in your own free API keys
 ```
 
-Free keys: [OTX](https://otx.alienvault.com/api) ·
-[AbuseIPDB](https://www.abuseipdb.com/account/api) ·
-[GreyNoise](https://viz.greynoise.io/account/) ·
-[Shodan](https://account.shodan.io/).
+Then provide keys one of two ways:
+
+```bash
+python setup_keys.py        # store in OS keyring (recommended)
+# -- or --
+cp .env.example .env        # paste keys into a gitignored file
+```
+
+See [SECURITY.md](SECURITY.md) for key handling and rotation.
 
 ## Usage
 
 ```bash
-# Markdown brief to stdout
+# Enrich a single indicator (Markdown brief)
 python -m ioc_enrich 193.36.119.48
 
-# JSON for piping into other tooling
+# JSON for piping
 python -m ioc_enrich evil-domain[.]com --json
 
-# Restrict to specific sources, and save the report
-python -m ioc_enrich 8.8.8.8 --sources otx,greynoise --out ./out
+# Orchestration agent: multiple IOCs -> one tactical brief
+python -m ioc_enrich.agent 193.36.119.48 evil[.]com --title "Volt Typhoon" --out out/brief.md
+
+# Detection rules from IOCs
+python -m ioc_enrich.detect 193.36.119.48 --context "Volt Typhoon" --out rules/vt/
 ```
 
-See [`examples/sample_output.md`](examples/sample_output.md) for a full report.
-
-### Orchestration agent
-
-Enrich several indicators and synthesize one tactical brief (BLUF, attribution,
-ATT&CK mapping, detection ideas, recommended actions):
-
-```bash
-python -m ioc_enrich.agent 193.36.119.48 malicious-c2[.]net \
-    --title "Volt Typhoon Infrastructure Cluster" --out out/brief.md
-```
-
-The brief is always produced deterministically. If `ANTHROPIC_API_KEY` is set,
-the agent upgrades it to full narrative analysis. See
-[`examples/sample_agent_brief.md`](examples/sample_agent_brief.md).
-
-### Detection-rule generator
-
-Turn indicators into deployable detections (Sigma + Suricata for network IOCs,
-Sigma + YARA for hashes):
-
-```bash
-python -m ioc_enrich.detect 193.36.119.48 44d88612fea8a8f36de82e1278abb02f \
-    --context "Volt Typhoon" --out rules/volt-typhoon/
-```
-
-A starter library lives in [`rules/`](rules/).
+Sample outputs: [`examples/`](examples/). Starter detections: [`rules/`](rules/).
 
 ## Testing
 
 ```bash
-python -m pytest        # logic tests (no API keys required)
+python -m pytest        # 18 tests, all HTTP mocked (no keys or network needed)
 ```
+
+CI runs the suite on Python 3.10–3.12 on every push.
 
 ## Roadmap
 
-- [x] **`agent/`** — chains enrichment → synthesis → tactical intel brief (LLM-enhanced, deterministic fallback)
-- [x] **Detection-rule generator** (Sigma / YARA / Suricata) — see `rules/`
+- [x] Multi-source enrichment engine (10 sources)
+- [x] Orchestration agent (enrichment → tactical brief)
+- [x] Detection-rule generator (Sigma / YARA / Suricata)
+- [x] OS-keyring secret storage + CI
 - [ ] Bulk mode (CSV in, CSV + per-IOC briefs out)
-- [ ] Additional sources: VirusTotal, URLScan, Censys
+- [ ] Censys + passive-DNS sources
 
 ## Disclaimer
 
 For defensive and research use. Automated verdicts are a first pass — always
-confirm against primary sources before taking action on an indicator.
+confirm against primary sources before acting on an indicator.
 
 ## License
 
