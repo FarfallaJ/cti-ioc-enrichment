@@ -8,14 +8,21 @@ Keys load from your OS keyring or a local .env exactly like the CLI; they are
 only ever sent to the enrichment source APIs, never anywhere else.
 """
 from __future__ import annotations
+import csv as _csv
+import io
 import json
+import os
+import tempfile
+import zipfile
+
 import streamlit as st
 
 from ioc_enrich.engine import enrich
 from ioc_enrich.config import source_status
 from ioc_enrich.agent.orchestrate import produce_brief, to_prompt_pack
 from ioc_enrich.detect import generate_rules
-from ioc_enrich import gui_render as gr
+from ioc_enrich import bulk, gui_render as gr
+from ioc_enrich.report import to_markdown
 
 st.set_page_config(page_title="CTI IOC Enrichment — Console",
                    page_icon="🛡", layout="wide")
@@ -100,7 +107,52 @@ def _iocs(raw: str) -> list[str]:
     return [x.strip() for x in raw.splitlines() if x.strip()]
 
 
-tab_enrich, tab_brief, tab_detect = st.tabs(["🔍  Enrich", "📄  Agent Brief", "🛡  Detections"])
+_EMO = {"malicious": "🔴", "suspicious": "🟠", "benign": "🟢", "unknown": "⚪", "error": "⚠️"}
+
+
+def _read_bulk_input(uploaded, pasted: str) -> list[str]:
+    """IOCs from an uploaded CSV/TSV/TXT, else from pasted text."""
+    if uploaded is not None:
+        ext = uploaded.name.rsplit(".", 1)[-1].lower() if "." in uploaded.name else "txt"
+        with tempfile.NamedTemporaryFile("wb", suffix=f".{ext}", delete=False) as tf:
+            tf.write(uploaded.getvalue())
+            path = tf.name
+        try:
+            return bulk.read_iocs(path)
+        finally:
+            os.unlink(path)
+    if pasted.strip():
+        with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False, encoding="utf-8") as tf:
+            tf.write(pasted)
+            path = tf.name
+        try:
+            return bulk.read_iocs(path)
+        finally:
+            os.unlink(path)
+    return []
+
+
+def _rows_to_csv(rows: list[dict]) -> str:
+    buf = io.StringIO()
+    w = _csv.DictWriter(buf, fieldnames=bulk.CSV_FIELDS)
+    w.writeheader()
+    for r in rows:
+        w.writerow(r)
+    return buf.getvalue()
+
+
+def _briefs_zip(results) -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        for a in results:
+            if a is None:
+                continue
+            safe = a.ioc.replace("/", "_").replace(":", "_")
+            z.writestr(f"{safe}.md", to_markdown(a))
+    return buf.getvalue()
+
+
+tab_enrich, tab_brief, tab_detect, tab_bulk = st.tabs(["🔍  Enrich", "📄  Agent Brief", "🛡  Detections", "📑  Bulk"])
 
 with tab_enrich:
     ioc = st.text_input("Indicator", placeholder="193.36.119.48 · evil[.]com · a file hash…")
@@ -167,6 +219,39 @@ with tab_detect:
                 st.info("No rules generated for those inputs.")
         else:
             st.warning("Enter at least one indicator.")
+
+with tab_bulk:
+    st.caption("Upload a CSV / TSV / TXT of indicators, or paste them below. "
+               "A recognized `indicator` column is used, else the first column.")
+    up = st.file_uploader("Indicators file", type=["csv", "tsv", "txt"])
+    pasted = st.text_area("…or paste indicators (one per line)", height=90, key="bulkpaste")
+    workers = st.slider("Concurrent indicators", 1, 8, 1,
+                        help="Raise with care — API rate limits apply per source.")
+    if st.button("Run bulk enrichment", type="primary", key="bulk"):
+        iocs = _read_bulk_input(up, pasted)
+        if not iocs:
+            st.warning("Provide a file or paste at least one indicator.")
+        else:
+            prog = st.progress(0.0, text=f"Enriching {len(iocs)} indicator(s)…")
+            results = bulk.enrich_bulk(
+                iocs, None, workers,
+                lambda i, n, ioc: prog.progress(i / n, text=f"[{i}/{n}]  {ioc}"))
+            prog.empty()
+            rows = [bulk.row_for(a) for a in results if a is not None]
+            from collections import Counter
+            dist = Counter(r["verdict"] for r in rows)
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Indicators", len(rows))
+            m2.metric("Malicious", dist.get("malicious", 0))
+            m3.metric("Suspicious", dist.get("suspicious", 0))
+            m4.metric("Unrecognized", len(iocs) - len(rows))
+            display = [{**r, "verdict": f'{_EMO.get(r["verdict"], "")} {r["verdict"]}'} for r in rows]
+            st.dataframe(display, use_container_width=True, hide_index=True)
+            st.download_button("Download results CSV", _rows_to_csv(rows),
+                               file_name="results.csv", mime="text/csv")
+            if rows:
+                st.download_button("Download briefs (.zip)", _briefs_zip(results),
+                                   file_name="briefs.zip", mime="application/zip")
 
 st.markdown('<div class="ec-handling" style="margin-top:28px;border-top:1px solid #243242;padding-top:14px;">'
             'IOC ENRICHMENT CONSOLE · OPEN-SOURCE INTELLIGENCE</div>', unsafe_allow_html=True)
