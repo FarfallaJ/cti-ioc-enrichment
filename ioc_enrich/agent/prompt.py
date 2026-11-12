@@ -1,4 +1,4 @@
-"""Prompt templates encoding the Fusion Cell intel-production methodology.
+"""Prompt templates encoding a tactical intelligence-production methodology.
 
 These are used when an LLM backend is configured (see llm.py). They turn the
 deterministic enrichment JSON into a narrative, analyst-grade brief. The
