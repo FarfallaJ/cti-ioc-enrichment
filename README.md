@@ -85,6 +85,20 @@ python -m ioc_enrich 8.8.8.8 --sources otx,greynoise --out ./out
 
 See [`examples/sample_output.md`](examples/sample_output.md) for a full report.
 
+### Orchestration agent
+
+Enrich several indicators and synthesize one tactical brief (BLUF, attribution,
+ATT&CK mapping, detection ideas, recommended actions):
+
+```bash
+python -m ioc_enrich.agent 193.36.119.48 malicious-c2[.]net \
+    --title "Volt Typhoon Infrastructure Cluster" --out out/brief.md
+```
+
+The brief is always produced deterministically. If `ANTHROPIC_API_KEY` is set,
+the agent upgrades it to full narrative analysis. See
+[`examples/sample_agent_brief.md`](examples/sample_agent_brief.md).
+
 ## Testing
 
 ```bash
@@ -93,7 +107,7 @@ python -m pytest        # logic tests (no API keys required)
 
 ## Roadmap
 
-- [ ] `orchestrate/` — chain enrichment → LLM analysis → Fusion Cell / WARNO brief
+- [x] **`agent/`** — chains enrichment → synthesis → tactical intel brief (LLM-enhanced, deterministic fallback)
 - [ ] Detection-rule generator (Sigma / YARA / Suricata) from enriched IOCs
 - [ ] Bulk mode (CSV in, CSV + per-IOC briefs out)
 - [ ] Additional sources: VirusTotal, URLScan, Censys
