@@ -38,7 +38,28 @@ python -m ioc_enrich --status
 ```
 
 Every source is optional. The more keys you add, the more coverage you get — but
-nothing is required to start.
+nothing is required to start. See [SECURITY.md](SECURITY.md) for how keys are
+stored and when to rotate them.
+
+---
+
+## Example
+
+`python -m ioc_enrich 193.36.119.48` — a known KV-botnet / Volt Typhoon node:
+
+> **`193.36.119.48`** &middot; type: ipv4 &middot; verdict: 🔴 **MALICIOUS** &middot; risk score: **69 / 100**
+
+| Source | Verdict | Score | Summary |
+|---|---|---|---|
+| otx | 🔴 malicious | 0.90 | 6 OTX pulses; adversary: Volt Typhoon |
+| abuseipdb | 🔴 malicious | 0.88 | Abuse confidence 88% from 142 reports |
+| greynoise | 🟠 suspicious | 0.40 | Internet scanner noise; not targeted |
+| shodan | 🟠 suspicious | 0.40 | 4 open ports; 1 known CVE |
+
+**Tags / pivots:** `Volt Typhoon` · `KV-botnet` · `T1595` · `T1105` · `CVE-2023-27997`
+
+Full samples — the agent's tactical brief and generated detection rules — are in
+[`examples/`](examples/).
 
 ---
 
@@ -91,24 +112,6 @@ ioc_enrich/
 └── cli.py
 ```
 
-## Setup
-
-```bash
-git clone https://github.com/FarfallaJ/cti-ioc-enrichment.git
-cd cti-ioc-enrichment
-pip install -r requirements.txt
-```
-
-Then provide keys one of two ways:
-
-```bash
-python setup_keys.py        # store in OS keyring (recommended)
-# -- or --
-cp .env.example .env        # paste keys into a gitignored file
-```
-
-See [SECURITY.md](SECURITY.md) for key handling and rotation.
-
 ## Usage
 
 ```bash
@@ -150,7 +153,7 @@ analysis, neither tied to any vendor:
 ## Testing
 
 ```bash
-python -m pytest        # 18 tests, all HTTP mocked (no keys or network needed)
+python -m pytest        # 20 tests, all HTTP mocked (no keys or network needed)
 ```
 
 CI runs the suite on Python 3.10–3.12 on every push.
