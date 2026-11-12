@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cti-ioc-enrichment"
+dynamic = ["version"]
+description = "Multi-source IOC enrichment & scoring engine for threat intelligence — enrich IPs, domains, URLs and hashes, then generate tactical briefs and Sigma/YARA/Suricata detections."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "Derek Gannon" }]
+keywords = ["threat-intelligence", "cti", "ioc", "osint", "detection-engineering", "sigma", "yara", "suricata"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Information Technology",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+]
+dependencies = [
+  "requests>=2.31.0",
+  "python-dotenv>=1.0.0",
+  "keyring>=24.0.0",
+]
+
+[project.optional-dependencies]
+gui = ["streamlit>=1.30.0"]
+dev = ["pytest>=7.0", "pyyaml>=6.0"]
+
+[project.urls]
+Homepage = "https://github.com/FarfallaJ/cti-ioc-enrichment"
+Repository = "https://github.com/FarfallaJ/cti-ioc-enrichment"
+Issues = "https://github.com/FarfallaJ/cti-ioc-enrichment/issues"
+
+[project.scripts]
+ioc-enrich = "ioc_enrich.cli:main"
+ioc-enrich-agent = "ioc_enrich.agent.cli:main"
+ioc-enrich-detect = "ioc_enrich.detect.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "ioc_enrich.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["ioc_enrich*"]

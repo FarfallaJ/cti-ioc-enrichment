@@ -24,18 +24,21 @@ are never committed.
 ```bash
 git clone https://github.com/FarfallaJ/cti-ioc-enrichment.git
 cd cti-ioc-enrichment
-pip install -r requirements.txt
+pip install -e .                  # installs deps + the ioc-enrich commands
 
 # It already works with zero keys (crt.sh, RDAP, Shodan InternetDB are keyless):
-python -m ioc_enrich 8.8.8.8
+ioc-enrich 8.8.8.8
 
 # Add your own keys to unlock the other seven sources:
 python setup_keys.py              # stores keys in your OS keyring, or
 cp .env.example .env              # paste keys into a local gitignored file
 
-# See exactly which sources are active for you:
-python -m ioc_enrich --status
+# See which sources are active for you:
+ioc-enrich --status
 ```
+
+After `pip install -e .` you get the `ioc-enrich`, `ioc-enrich-agent`, and
+`ioc-enrich-detect` commands (the `python -m ioc_enrich …` form still works too).
 
 Every source is optional. The more keys you add, the more coverage you get — but
 nothing is required to start. See [SECURITY.md](SECURITY.md) for how keys are
@@ -157,7 +160,7 @@ Prefer a point-and-click console? A Streamlit GUI wraps the same engine — enri
 an indicator, generate a tactical brief, or build detections, all in the browser.
 
 ```bash
-pip install -r requirements.txt -r requirements-gui.txt
+pip install -e ".[gui]"
 streamlit run app.py
 ```
 
@@ -179,6 +182,7 @@ CI runs the suite on Python 3.10–3.12 on every push.
 - [x] Detection-rule generator (Sigma / YARA / Suricata)
 - [x] OS-keyring secret storage + CI
 - [x] Streamlit GUI
+- [x] pip-installable package (pyproject, console commands)
 - [ ] Bulk mode (CSV in, CSV + per-IOC briefs out)
 - [ ] Censys + passive-DNS sources
 

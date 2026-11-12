@@ -14,3 +14,4 @@ venv/
 # Output
 out/
 *.local.json
+build/
