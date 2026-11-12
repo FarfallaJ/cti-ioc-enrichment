@@ -139,6 +139,9 @@ python -m ioc_enrich.agent 193.36.119.48 --format json
 
 # Detection rules from IOCs
 python -m ioc_enrich.detect 193.36.119.48 --context "Volt Typhoon" --out rules/vt/
+
+# Bulk: a file of indicators -> a results CSV (+ optional per-IOC briefs)
+ioc-enrich-bulk indicators.csv --out results.csv --briefs briefs/
 ```
 
 Sample outputs: [`examples/`](examples/). Starter detections: [`rules/`](rules/).
@@ -183,7 +186,7 @@ CI runs the suite on Python 3.10–3.12 on every push.
 - [x] OS-keyring secret storage + CI
 - [x] Streamlit GUI
 - [x] pip-installable package (pyproject, console commands)
-- [ ] Bulk mode (CSV in, CSV + per-IOC briefs out)
+- [x] Bulk mode (CSV in, CSV + per-IOC briefs out)
 - [ ] Censys + passive-DNS sources
 
 ## Disclaimer

@@ -42,6 +42,7 @@ Issues = "https://github.com/FarfallaJ/cti-ioc-enrichment/issues"
 ioc-enrich = "ioc_enrich.cli:main"
 ioc-enrich-agent = "ioc_enrich.agent.cli:main"
 ioc-enrich-detect = "ioc_enrich.detect.cli:main"
+ioc-enrich-bulk = "ioc_enrich.bulk:main"
 
 [tool.setuptools.dynamic]
 version = { attr = "ioc_enrich.__version__" }
