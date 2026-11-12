@@ -56,3 +56,13 @@ def available_sources() -> list[str]:
     """Keyed sources that have a key, plus all keyless sources."""
     keyed = [s for s in KEYS if get_key(s)]
     return keyed + sorted(KEYLESS)
+
+
+def source_status() -> dict[str, str]:
+    """Report each source: 'configured', 'missing-key', or 'keyless'."""
+    out = {}
+    for s in KEYS:
+        out[s] = "configured" if get_key(s) else "missing-key"
+    for s in sorted(KEYLESS):
+        out[s] = "keyless"
+    return out

@@ -15,6 +15,33 @@ why?" — into one command.
 
 ---
 
+## Quick start (bring your own keys)
+
+This is a bring-your-own-keys tool: it ships with **no** API keys, and you add
+your own. Keys live only on your machine (OS keyring or a gitignored `.env`) and
+are never committed.
+
+```bash
+git clone https://github.com/FarfallaJ/cti-ioc-enrichment.git
+cd cti-ioc-enrichment
+pip install -r requirements.txt
+
+# It already works with zero keys (crt.sh, RDAP, Shodan InternetDB are keyless):
+python -m ioc_enrich 8.8.8.8
+
+# Add your own keys to unlock the other seven sources:
+python setup_keys.py              # stores keys in your OS keyring, or
+cp .env.example .env              # paste keys into a local gitignored file
+
+# See exactly which sources are active for you:
+python -m ioc_enrich --status
+```
+
+Every source is optional. The more keys you add, the more coverage you get — but
+nothing is required to start.
+
+---
+
 ## Sources
 
 | Source | Key | IP | Domain | URL | Hash | Signal |
@@ -85,6 +112,9 @@ See [SECURITY.md](SECURITY.md) for key handling and rotation.
 ## Usage
 
 ```bash
+# Check which sources are configured for you
+python -m ioc_enrich --status
+
 # Enrich a single indicator (Markdown brief)
 python -m ioc_enrich 193.36.119.48
 
