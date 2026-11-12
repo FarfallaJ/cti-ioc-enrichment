@@ -21,3 +21,29 @@ def test_produce_brief_deterministic(monkeypatch):
     assert "Volt Typhoon" in b.markdown
     assert "T1595" in b.markdown
     assert "Recommended Actions" in b.markdown
+
+
+def test_prompt_pack_is_vendor_neutral(monkeypatch):
+    import ioc_enrich.agent.orchestrate as o
+    monkeypatch.setattr(o, "enrich", _fake)
+    monkeypatch.setattr(o, "synthesize", lambda s, u: None)
+    b = o.produce_brief(["1.2.3.4"], title="T", synthesize_llm=False)
+    pack = o.to_prompt_pack(b)
+    assert not b.used_llm
+    # names multiple vendors, favors none
+    for ai in ("ChatGPT", "Claude", "Gemini"):
+        assert ai in pack
+    assert "ROLE / SYSTEM" in pack and "TASK" in pack
+
+
+def test_llm_provider_autodetect(monkeypatch):
+    from ioc_enrich.agent import llm
+    for k in ("LLM_PROVIDER", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "LLM_BASE_URL"):
+        monkeypatch.delenv(k, raising=False)
+    assert llm.active_provider() == "none"
+    monkeypatch.setenv("OPENAI_API_KEY", "x")
+    assert llm.active_provider() == "openai"
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "y")
+    assert llm.active_provider() == "anthropic"      # precedence
+    monkeypatch.setenv("LLM_PROVIDER", "openai")
+    assert llm.active_provider() == "openai"          # forced override

@@ -136,15 +136,32 @@ def _deterministic_brief(title: str, assessments: list[Assessment]) -> str:
 
 
 def produce_brief(iocs: list[str], title: str | None = None,
-                  sources: list[str] | None = None) -> Brief:
+                  sources: list[str] | None = None,
+                  synthesize_llm: bool = True) -> Brief:
     assessments = [enrich(i, sources) for i in iocs]
     title = title or f"Tactical Threat Brief — {len(iocs)} indicator(s)"
     deterministic = _deterministic_brief(title, assessments)
     data = json.dumps([a.to_dict() for a in assessments], indent=2)
     system, user = build_prompt(title, data)
-    narrative = synthesize(system, user)
+    narrative = synthesize(system, user) if synthesize_llm else None
     return Brief(
         title=title, assessments=assessments,
         narrative=narrative or "", deterministic=deterministic,
         used_llm=bool(narrative),
+    )
+
+
+def to_prompt_pack(brief: "Brief") -> str:
+    """A portable, AI-agnostic prompt pack: paste into ANY LLM to get the
+    narrative brief. This calls no AI itself."""
+    data = json.dumps([a.to_dict() for a in brief.assessments], indent=2)
+    system, user = build_prompt(brief.title, data)
+    bar = "=" * 63
+    return (
+        f"# Analyst Prompt Pack — {brief.title}\n\n"
+        "Copy everything below into any AI assistant (ChatGPT, Claude, Gemini,\n"
+        "a local model, ...) to generate the narrative brief. This export calls\n"
+        "no AI itself and favors no vendor.\n\n"
+        f"{bar}\nROLE / SYSTEM\n{bar}\n{system}\n\n"
+        f"{bar}\nTASK\n{bar}\n{user}\n"
     )

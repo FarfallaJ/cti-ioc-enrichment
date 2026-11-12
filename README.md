@@ -122,13 +122,30 @@ python -m ioc_enrich 193.36.119.48
 python -m ioc_enrich evil-domain[.]com --json
 
 # Orchestration agent: multiple IOCs -> one tactical brief
-python -m ioc_enrich.agent 193.36.119.48 evil[.]com --title "Volt Typhoon" --out out/brief.md
+python -m ioc_enrich.agent 193.36.119.48 evil[.]com --title "Campaign X"
+
+# Export a vendor-neutral prompt pack to paste into ANY AI (calls no AI itself)
+python -m ioc_enrich.agent 193.36.119.48 evil[.]com --format prompt-pack --out pack.md
+
+# Raw enrichment JSON (no AI)
+python -m ioc_enrich.agent 193.36.119.48 --format json
 
 # Detection rules from IOCs
 python -m ioc_enrich.detect 193.36.119.48 --context "Volt Typhoon" --out rules/vt/
 ```
 
 Sample outputs: [`examples/`](examples/). Starter detections: [`rules/`](rules/).
+
+### Narrative synthesis is optional and vendor-neutral
+
+The agent produces a solid brief with **no AI at all**. Two ways to add narrative
+analysis, neither tied to any vendor:
+
+- `--format prompt-pack` outputs a portable pack you paste into **any** assistant
+  (ChatGPT, Claude, Gemini, a local model). The tool calls no AI.
+- For a fully automated brief, set one of `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`,
+  or an OpenAI-compatible `LLM_BASE_URL` (e.g. a local Ollama server). The agent
+  auto-detects the provider; force it with `LLM_PROVIDER`. Bring whichever you prefer.
 
 ## Testing
 
