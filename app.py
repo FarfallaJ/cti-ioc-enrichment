@@ -1,4 +1,4 @@
-"""The Fusion Cell — Enrichment Console (Streamlit GUI).
+"""CTI IOC Enrichment — Console (Streamlit GUI).
 
 Run locally:
     pip install -r requirements.txt -r requirements-gui.txt
@@ -17,19 +17,14 @@ from ioc_enrich.agent.orchestrate import produce_brief, to_prompt_pack
 from ioc_enrich.detect import generate_rules
 from ioc_enrich import gui_render as gr
 
-st.set_page_config(page_title="The Fusion Cell — Enrichment Console",
+st.set_page_config(page_title="CTI IOC Enrichment — Console",
                    page_icon="🛡", layout="wide")
 
 EMBLEM = (
     '<svg viewBox="0 0 64 64" fill="none" width="50" height="50" aria-hidden="true">'
-    '<path d="M12 9 H52 V32 C52 46 43 55 32 61 C21 55 12 46 12 32 Z" fill="rgba(55,201,214,0.14)" stroke="#37c9d6" stroke-width="2" stroke-linejoin="round"/>'
-    '<path d="M17 12 L25 26 M47 12 L39 26" stroke="#37c9d6" stroke-width="2" stroke-linecap="round"/>'
-    '<path d="M15 24 L32 32 L49 24" fill="none" stroke="#37c9d6" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>'
-    '<circle cx="23.5" cy="36" r="7" fill="none" stroke="#37c9d6" stroke-width="2"/>'
-    '<circle cx="40.5" cy="36" r="7" fill="none" stroke="#37c9d6" stroke-width="2"/>'
-    '<circle cx="23.5" cy="36" r="2.7" fill="#37c9d6"/><circle cx="40.5" cy="36" r="2.7" fill="#37c9d6"/>'
-    '<path d="M28.5 45 L32 53 L35.5 45 Z" fill="#37c9d6"/>'
-    '<path d="M16 42 H12.5 M48 42 H51.5" stroke="#37c9d6" stroke-width="1.4" stroke-linecap="round"/></svg>'
+    '<path d="M32 6 L54 14 V32 C54 46 44 56 32 60 C20 56 10 46 10 32 V14 Z" fill="rgba(55,201,214,0.14)" stroke="#37c9d6" stroke-width="2" stroke-linejoin="round"/>'
+    '<circle cx="29" cy="30" r="9" fill="none" stroke="#37c9d6" stroke-width="2.4"/>'
+    '<line x1="35.5" y1="36.5" x2="44" y2="45" stroke="#37c9d6" stroke-width="2.6" stroke-linecap="round"/></svg>'
 )
 
 CSS = """<style>
@@ -41,53 +36,53 @@ h1, h2, h3, h4 { font-family: 'Space Grotesk', sans-serif !important; }
 .block-container { padding-top: 1.2rem; max-width: 1040px; }
 [data-testid="stSidebar"] { background: #111822; border-right: 1px solid #243242; }
 
-.fc-classbar { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.16em;
+.ec-classbar { font-family: 'JetBrains Mono', monospace; font-size: 10.5px; letter-spacing: 0.16em;
   text-transform: uppercase; color: #93a3b4; border-bottom: 1px solid #243242; padding: 6px 2px; margin-bottom: 14px; }
-.fc-classbar b { color: #37c9d6; font-weight: 500; }
-.fc-masthead { display: flex; align-items: center; gap: 15px; position: relative; overflow: hidden;
+.ec-classbar b { color: #37c9d6; font-weight: 500; }
+.ec-masthead { display: flex; align-items: center; gap: 15px; position: relative; overflow: hidden;
   background: radial-gradient(120% 160% at 90% -40%, rgba(55,201,214,0.14), transparent 60%), linear-gradient(180deg,#16202c,#0a0e13);
   border: 1px solid #243242; border-radius: 12px; padding: 18px 20px; }
-.fc-wordmark { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: 0.04em;
+.ec-wordmark { font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 30px; letter-spacing: 0.04em;
   text-transform: uppercase; line-height: 1; }
-.fc-wordmark span { color: #93a3b4; font-weight: 500; }
-.fc-tagline { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+.ec-wordmark span { color: #93a3b4; font-weight: 500; }
+.ec-tagline { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
   color: #37c9d6; margin-top: 7px; }
-.fc-handling { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
+.ec-handling { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.05em; text-transform: uppercase;
   color: #65768a; margin: 10px 2px 4px; }
 
-.fc-banner { border: 1px solid #243242; border-left: 4px solid #37c9d6; border-radius: 10px;
+.ec-banner { border: 1px solid #243242; border-left: 4px solid #37c9d6; border-radius: 10px;
   background: #111822; padding: 16px 18px; margin: 6px 0 14px; }
-.fc-banner.fc-b-crit { border-left-color: #f87171; }
-.fc-banner.fc-b-warn { border-left-color: #fbbf24; }
-.fc-banner.fc-b-good { border-left-color: #34d399; }
-.fc-ioc { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500; }
-.fc-vmeta { margin-top: 6px; font-size: 14px; color: #c7d2de; }
-.fc-k { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #37c9d6; }
+.ec-banner.ec-b-crit { border-left-color: #f87171; }
+.ec-banner.ec-b-warn { border-left-color: #fbbf24; }
+.ec-banner.ec-b-good { border-left-color: #34d399; }
+.ec-ioc { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 500; }
+.ec-vmeta { margin-top: 6px; font-size: 14px; color: #c7d2de; }
+.ec-k { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: #37c9d6; }
 
-.fc-table { width: 100%; border-collapse: collapse; font-size: 13.5px; border: 1px solid #243242; border-radius: 10px; overflow: hidden; }
-.fc-table th { background: #16202c; text-align: left; padding: 9px 12px; font-family: 'JetBrains Mono', monospace;
+.ec-table { width: 100%; border-collapse: collapse; font-size: 13.5px; border: 1px solid #243242; border-radius: 10px; overflow: hidden; }
+.ec-table th { background: #16202c; text-align: left; padding: 9px 12px; font-family: 'JetBrains Mono', monospace;
   font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: #93a3b4; border-bottom: 1px solid #243242; }
-.fc-table td { padding: 9px 12px; border-bottom: 1px solid #1c2735; vertical-align: top; }
-.fc-table tr:last-child td { border-bottom: none; }
-.fc-table a { color: #37c9d6; text-decoration: none; }
-.fc-mono { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
-.fc-crit { color: #f87171; } .fc-warn { color: #fbbf24; } .fc-good { color: #34d399; } .fc-muted { color: #93a3b4; }
+.ec-table td { padding: 9px 12px; border-bottom: 1px solid #1c2735; vertical-align: top; }
+.ec-table tr:last-child td { border-bottom: none; }
+.ec-table a { color: #37c9d6; text-decoration: none; }
+.ec-mono { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; }
+.ec-crit { color: #f87171; } .ec-warn { color: #fbbf24; } .ec-good { color: #34d399; } .ec-muted { color: #93a3b4; }
 
-.fc-tags { margin: 14px 0; } .fc-tags > div { margin-top: 8px; }
-.fc-chip { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #c7d2de;
+.ec-tags { margin: 14px 0; } .ec-tags > div { margin-top: 8px; }
+.ec-chip { display: inline-block; font-family: 'JetBrains Mono', monospace; font-size: 10.5px; color: #c7d2de;
   border: 1px solid #243242; border-radius: 999px; padding: 2px 9px; margin: 0 4px 6px 0; background: #0a0e13; }
-.fc-src { font-size: 13px; padding: 2px 0; }
-.fc-dim { color: #65768a; font-size: 11px; }
+.ec-src { font-size: 13px; padding: 2px 0; }
+.ec-dim { color: #65768a; font-size: 11px; }
 </style>"""
 
 st.markdown(CSS, unsafe_allow_html=True)
-st.markdown('<div class="fc-classbar"><b>UNCLASSIFIED</b> // FOR PUBLIC RELEASE</div>', unsafe_allow_html=True)
+st.markdown('<div class="ec-classbar"><b>UNCLASSIFIED</b> // FOR PUBLIC RELEASE</div>', unsafe_allow_html=True)
 st.markdown(
-    '<div class="fc-masthead">' + EMBLEM +
-    '<div><div class="fc-wordmark"><span>The</span> Fusion Cell</div>'
-    '<div class="fc-tagline">Tactical Cyber Intelligence · Enrichment Console</div></div></div>',
+    '<div class="ec-masthead">' + EMBLEM +
+    '<div><div class="ec-wordmark">IOC Enrichment <span>Console</span></div>'
+    '<div class="ec-tagline">Multi-source indicator enrichment & scoring</div></div></div>',
     unsafe_allow_html=True)
-st.markdown('<div class="fc-handling">OSINT · personal analysis · indicators require validation before action</div>',
+st.markdown('<div class="ec-handling">OSINT · personal analysis · indicators require validation before action</div>',
             unsafe_allow_html=True)
 
 # Sidebar — source status
@@ -95,8 +90,8 @@ with st.sidebar:
     st.markdown("### Sources")
     _icon = {"configured": "🟢", "keyless": "🔵", "missing-key": "⚪"}
     for src, state in source_status().items():
-        st.markdown(f'<div class="fc-src">{_icon[state]} <span class="fc-mono">{src}</span> '
-                    f'<span class="fc-dim">{state}</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="ec-src">{_icon[state]} <span class="ec-mono">{src}</span> '
+                    f'<span class="ec-dim">{state}</span></div>', unsafe_allow_html=True)
     st.caption("Keys load from your OS keyring or local .env — only ever sent to the source APIs.")
     st.caption("Add keys with `python setup_keys.py` or a `.env` file.")
 
@@ -173,5 +168,5 @@ with tab_detect:
         else:
             st.warning("Enter at least one indicator.")
 
-st.markdown('<div class="fc-handling" style="margin-top:28px;border-top:1px solid #243242;padding-top:14px;">'
-            'THE FUSION CELL · ENRICHMENT CONSOLE · OSINT / PERSONAL ANALYSIS</div>', unsafe_allow_html=True)
+st.markdown('<div class="ec-handling" style="margin-top:28px;border-top:1px solid #243242;padding-top:14px;">'
+            'IOC ENRICHMENT CONSOLE · OPEN-SOURCE INTELLIGENCE</div>', unsafe_allow_html=True)

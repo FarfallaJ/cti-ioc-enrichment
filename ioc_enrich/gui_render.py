@@ -1,7 +1,7 @@
 """Pure HTML renderers for the Streamlit GUI — no Streamlit dependency.
 
 Kept separate so the presentation helpers are unit-testable without a Streamlit
-runtime. app.py imports these and injects the matching Fusion Cell CSS.
+runtime. app.py imports these and injects the matching CSS.
 """
 from __future__ import annotations
 import html as _html
@@ -22,12 +22,12 @@ def _esc(s) -> str:
 
 def verdict_banner(a: Assessment) -> str:
     emoji, label, cls = _V[a.verdict.value]
-    return (f'<div class="fc-banner fc-b-{cls}">'
-            f'<div class="fc-ioc">{_esc(a.ioc)}</div>'
-            f'<div class="fc-vmeta">'
-            f'<span class="fc-k">TYPE</span> {_esc(a.ioc_type)}'
-            f' &nbsp;&middot;&nbsp; <span class="fc-k">VERDICT</span> {emoji} <b>{label}</b>'
-            f' &nbsp;&middot;&nbsp; <span class="fc-k">RISK</span> <b>{a.risk_score} / 100</b>'
+    return (f'<div class="ec-banner ec-b-{cls}">'
+            f'<div class="ec-ioc">{_esc(a.ioc)}</div>'
+            f'<div class="ec-vmeta">'
+            f'<span class="ec-k">TYPE</span> {_esc(a.ioc_type)}'
+            f' &nbsp;&middot;&nbsp; <span class="ec-k">VERDICT</span> {emoji} <b>{label}</b>'
+            f' &nbsp;&middot;&nbsp; <span class="ec-k">RISK</span> <b>{a.risk_score} / 100</b>'
             f'</div></div>')
 
 
@@ -38,12 +38,12 @@ def source_table(a: Assessment) -> str:
         summary = _esc(s.summary or s.error or "—")
         link = (f' <a href="{_esc(s.link)}" target="_blank" rel="noopener">↗</a>'
                 if s.link else "")
-        rows.append(f'<tr><td class="fc-mono">{_esc(s.source)}</td>'
-                    f'<td class="fc-{cls}">{emoji} {_esc(label.lower())}</td>'
-                    f'<td class="fc-mono">{s.score:.2f}</td>'
+        rows.append(f'<tr><td class="ec-mono">{_esc(s.source)}</td>'
+                    f'<td class="ec-{cls}">{emoji} {_esc(label.lower())}</td>'
+                    f'<td class="ec-mono">{s.score:.2f}</td>'
                     f'<td>{summary}{link}</td></tr>')
     body = "".join(rows) or '<tr><td colspan="4">No sources ran.</td></tr>'
-    return ('<table class="fc-table"><thead><tr>'
+    return ('<table class="ec-table"><thead><tr>'
             '<th>Source</th><th>Verdict</th><th>Score</th><th>Summary</th>'
             f'</tr></thead><tbody>{body}</tbody></table>')
 
@@ -51,5 +51,5 @@ def source_table(a: Assessment) -> str:
 def tags_html(a: Assessment) -> str:
     if not a.tags:
         return ""
-    chips = " ".join(f'<span class="fc-chip">{_esc(t)}</span>' for t in a.tags[:40])
-    return f'<div class="fc-tags"><span class="fc-k">TAGS / PIVOTS</span><div>{chips}</div></div>'
+    chips = " ".join(f'<span class="ec-chip">{_esc(t)}</span>' for t in a.tags[:40])
+    return f'<div class="ec-tags"><span class="ec-k">TAGS / PIVOTS</span><div>{chips}</div></div>'

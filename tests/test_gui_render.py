@@ -12,7 +12,7 @@ def _assess(verdict=Verdict.MALICIOUS, risk=82):
 
 def test_verdict_banner():
     html = gr.verdict_banner(_assess())
-    assert "MALICIOUS" in html and "82 / 100" in html and "fc-b-crit" in html
+    assert "MALICIOUS" in html and "82 / 100" in html and "ec-b-crit" in html
 
 
 def test_source_table_has_rows_and_links():

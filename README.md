@@ -91,7 +91,7 @@ that support its type, so a hash lookup never wastes a call on an IP-only feed.
 - **Orchestration agent** — chains enrichment into a tactical brief (BLUF,
   attribution, ATT&CK mapping, actions); deterministic, LLM-enhanced when a key is set.
 - **Detection generator** — emits Sigma, YARA, and Suricata rules from IOCs.
-- **Optional GUI** — a local Streamlit console in The Fusion Cell house style (`streamlit run app.py`).
+- **Optional GUI** — a local Streamlit console (`streamlit run app.py`).
 - **Secrets stay out of git** — keys load from the OS keyring or a gitignored
   `.env`; see [SECURITY.md](SECURITY.md).
 
@@ -153,9 +153,8 @@ analysis, neither tied to any vendor:
 
 ## GUI (optional)
 
-Prefer a point-and-click console? A Streamlit GUI wraps the same engine behind
-The Fusion Cell masthead — enrich an indicator, generate a tactical brief, or
-build detections, all in the browser.
+Prefer a point-and-click console? A Streamlit GUI wraps the same engine — enrich
+an indicator, generate a tactical brief, or build detections, all in the browser.
 
 ```bash
 pip install -r requirements.txt -r requirements-gui.txt
@@ -179,7 +178,7 @@ CI runs the suite on Python 3.10–3.12 on every push.
 - [x] Orchestration agent (enrichment → tactical brief)
 - [x] Detection-rule generator (Sigma / YARA / Suricata)
 - [x] OS-keyring secret storage + CI
-- [x] Streamlit GUI (Fusion Cell house style)
+- [x] Streamlit GUI
 - [ ] Bulk mode (CSV in, CSV + per-IOC briefs out)
 - [ ] Censys + passive-DNS sources
 
