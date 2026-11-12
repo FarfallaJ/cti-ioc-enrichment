@@ -59,7 +59,7 @@ feed (VirusTotal, URLScan, Censys…) is a single new file in `sources/`.
 ## Setup
 
 ```bash
-git clone https://github.com/<your-handle>/cti-ioc-enrichment.git
+git clone https://github.com/FarfallaJ/cti-ioc-enrichment.git
 cd cti-ioc-enrichment
 pip install -r requirements.txt
 cp .env.example .env     # then paste in your own free API keys
