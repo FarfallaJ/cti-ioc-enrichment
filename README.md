@@ -159,6 +159,8 @@ analysis, neither tied to any vendor:
 
 ## GUI (optional)
 
+![IOC Enrichment Console — live enrichment of a KV-botnet node](docs/console.png)
+
 Prefer a point-and-click console? A Streamlit GUI wraps the same engine — enrich
 an indicator, generate a tactical brief, build detections, or bulk-enrich an
 uploaded file, all in the browser.
