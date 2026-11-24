@@ -74,7 +74,16 @@ def query(ioc: str, ioc_type: str) -> SourceResult:
     if adversary:
         bits.append("adversary: " + ", ".join(sorted(adversary)))
     r.summary = "; ".join(bits) + "."
-    r.tags.extend(sorted(t for t in malware if t))
-    r.tags.extend(sorted(adversary))
-    r.tags.extend(sorted(attack_ids))
+    mal = sorted(t for t in malware if t)
+    adv = sorted(adversary)
+    atk = sorted(attack_ids)
+    r.tags.extend(mal)
+    r.tags.extend(adv)
+    r.tags.extend(atk)
+    if mal:
+        r.pivots["malware"] = mal
+    if adv:
+        r.pivots["actor"] = adv
+    if atk:
+        r.pivots["attack"] = atk
     return r

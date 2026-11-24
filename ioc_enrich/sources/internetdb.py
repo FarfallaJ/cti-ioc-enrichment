@@ -45,4 +45,6 @@ def query(ioc: str, ioc_type: str) -> SourceResult:
     r.tags.extend(f"port:{p}" for p in ports[:12])
     r.tags.extend(vulns[:10])
     r.tags.extend(t for t in tags if isinstance(t, str))
+    if vulns:
+        r.pivots["cve"] = vulns[:10]
     return r

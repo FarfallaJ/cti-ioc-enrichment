@@ -1,5 +1,5 @@
 """Adapter parsing/verdict tests with mocked HTTP (no network, no real keys)."""
-from ioc_enrich.sources import virustotal, abusech, internetdb, rdap, crtsh, urlscan
+from ioc_enrich.sources import virustotal, abusech, internetdb, rdap, crtsh, urlscan, otx
 from ioc_enrich.sources.base import Verdict
 
 
@@ -44,6 +44,7 @@ def test_abusech_hit(monkeypatch):
     r = abusech.query("1.2.3.4", "ipv4")
     assert r.verdict == Verdict.MALICIOUS
     assert "Cobalt Strike" in r.tags
+    assert r.pivots["malware"] == ["Cobalt Strike"]
 
 
 def test_abusech_clean(monkeypatch):
@@ -61,6 +62,21 @@ def test_internetdb_vulns(monkeypatch):
     assert r.verdict == Verdict.SUSPICIOUS
     assert "CVE-2023-1234" in r.tags
     assert "port:22" in r.tags
+    assert r.pivots["cve"] == ["CVE-2023-1234"]
+
+
+def test_otx_pivots(monkeypatch):
+    monkeypatch.setattr(otx, "get_key", lambda s: "k")
+    monkeypatch.setattr(otx.requests, "get", lambda u, **k: FakeResp(
+        {"pulse_info": {"pulses": [
+            {"name": "KV", "malware_families": [{"display_name": "HiatusRat"}],
+             "adversary": "Volt Typhoon", "attack_ids": [{"id": "T1090"}]},
+            {"name": "KV2"}, {"name": "KV3"}]}}))
+    r = otx.query("1.2.3.4", "ipv4")
+    assert r.verdict == Verdict.MALICIOUS
+    assert r.pivots["malware"] == ["HiatusRat"]
+    assert r.pivots["actor"] == ["Volt Typhoon"]
+    assert r.pivots["attack"] == ["T1090"]
 
 
 def test_rdap_new_domain(monkeypatch):

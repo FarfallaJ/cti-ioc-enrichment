@@ -47,6 +47,9 @@ def query(ioc: str, ioc_type: str) -> SourceResult:
     r.score = min(0.6 + conf / 250, 1.0)
     r.summary = (f"Listed in ThreatFox ({len(rows)} entr(ies), max confidence {conf}%); "
                  f"malware: {', '.join(sorted(m for m in malware if m)) or 'n/a'}.")
-    r.tags.extend(sorted(m for m in malware if m))
+    mal = sorted(m for m in malware if m)
+    r.tags.extend(mal)
     r.tags.extend(sorted(t for t in threats if t))
+    if mal:
+        r.pivots["malware"] = mal
     return r

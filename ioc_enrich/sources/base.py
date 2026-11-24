@@ -26,6 +26,10 @@ class SourceResult:
     link: str = ""               # human-viewable reference URL
     raw: dict[str, Any] = field(default_factory=dict)
     error: str = ""
+    # Typed threat pivots, keys among: malware, actor, attack (ATT&CK), cve.
+    # Tags stay populated for back-compat; pivots add structure for exports.
+    # Kept last so positional construction stays compatible.
+    pivots: dict[str, list[str]] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)

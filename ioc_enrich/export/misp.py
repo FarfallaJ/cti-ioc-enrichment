@@ -30,12 +30,6 @@ _NOISE = {"internet-scanner", "common-business-service", "tor-exit",
           "data-center/web-hosting/transit"}
 
 
-def _tag_for(t: str) -> str:
-    if _ATTACK_RE.match(t):
-        return f'misp-galaxy:mitre-attack-pattern="{t}"'
-    return t
-
-
 def to_misp_event(assessments: list[Assessment], info: str | None = None,
                   tlp: str = "amber") -> dict:
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -44,8 +38,15 @@ def to_misp_event(assessments: list[Assessment], info: str | None = None,
     title = info or f"IOC enrichment — {len(assessments)} indicator(s)"
 
     attributes = []
-    tags: list[str] = [f"tlp:{tlp.lower()}"]
-    seen_tags = {f"tlp:{tlp.lower()}"}
+    tags: list[str] = []
+    seen: set[str] = set()
+
+    def add_tag(name: str) -> None:
+        if name and name not in seen:
+            seen.add(name)
+            tags.append(name)
+
+    add_tag(f"tlp:{tlp.lower()}")
 
     for a in assessments:
         spec = _ATTR.get(a.ioc_type)
@@ -60,13 +61,20 @@ def to_misp_event(assessments: list[Assessment], info: str | None = None,
             "to_ids": ids,
             "comment": f"verdict={a.verdict.value} risk={a.risk_score}/100",
         })
+        pv = a.pivots or {}
+        for name in pv.get("actor", []):
+            add_tag(f'misp-galaxy:threat-actor="{name}"')
+        for name in pv.get("malware", []):
+            add_tag(f'misp-galaxy:malpedia="{name}"')
+        attacks = pv.get("attack", []) or [t for t in a.tags if _ATTACK_RE.match(t)]
+        for t in attacks:
+            add_tag(f'misp-galaxy:mitre-attack-pattern="{t}"')
+        pivot_vals = {v for vals in pv.values() for v in vals}
         for t in a.tags:
-            if ":" in t or t in _NOISE:
+            if (t in pivot_vals or ":" in t or t in _NOISE
+                    or _ATTACK_RE.match(t)):
                 continue
-            tag = _tag_for(t)
-            if tag not in seen_tags:
-                seen_tags.add(tag)
-                tags.append(tag)
+            add_tag(t)
 
     return {
         "Event": {

@@ -220,7 +220,7 @@ Station publishes five tools:
 | `enrich_batch` | Enrich many indicators at once, results in input order |
 | `generate_brief` | Produce a tactical threat brief + a portable, vendor-neutral prompt pack |
 | `generate_detections` | Draft Sigma / YARA / Suricata rules, routed by indicator type |
-| `export_indicators` | Enrich and export as a STIX 2.1 bundle or a MISP event (for OpenCTI / MISP / TAXII) |
+| `export_indicators` | Enrich and export as a STIX 2.1 bundle (Indicators + malware / intrusion-set / ATT&CK / CVE objects and relationships) or a MISP event — for OpenCTI / MISP / TAXII |
 | `list_sources` | Show configured sources, supported types, and the active LLM provider; `check=true` live-probes each key and flags invalid/expired ones |
 
 By design, `generate_brief` returns a deterministic brief **and** a `prompt_pack`
@@ -231,7 +231,7 @@ call a configured backend directly instead.)
 ## Testing
 
 ```bash
-python -m pytest        # 59 tests, all HTTP mocked (no keys or network needed)
+python -m pytest        # 63 tests, all HTTP mocked (no keys or network needed)
 ```
 
 CI runs the suite on Python 3.10–3.12 on every push.

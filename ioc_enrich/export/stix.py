@@ -97,11 +97,18 @@ def to_stix_bundle(assessments: list[Assessment], tlp: str = "amber") -> dict:
             continue
         ind_id = _oid("indicator", f"{a.ioc_type}:{a.ioc}")
 
+        pv = a.pivots or {}
+        malware = pv.get("malware", [])
+        actors = pv.get("actor", [])
+        attacks = pv.get("attack", []) or [t for t in a.tags if _ATTACK_RE.match(t)]
+        cves = pv.get("cve", []) or [t for t in a.tags if _CVE_RE.match(t)]
+        pivot_vals = set(malware) | set(actors) | set(attacks) | set(cves)
+
         ext_refs = [{"source_name": s.source, "url": s.link}
                     for s in a.sources if s.link]
         labels = [t for t in a.tags
-                  if not _ATTACK_RE.match(t) and not _CVE_RE.match(t)
-                  and ":" not in t and t not in _NOISE]
+                  if t not in pivot_vals and not _ATTACK_RE.match(t)
+                  and not _CVE_RE.match(t) and ":" not in t and t not in _NOISE]
 
         indicator = {
             "type": "indicator", "spec_version": "2.1", "id": ind_id,
@@ -120,27 +127,43 @@ def to_stix_bundle(assessments: list[Assessment], tlp: str = "amber") -> dict:
             indicator["external_references"] = ext_refs
         add(indicator)
 
-        for t in a.tags:
-            if _ATTACK_RE.match(t):
-                ap_id = _oid("attack-pattern", t)
-                add({
-                    "type": "attack-pattern", "spec_version": "2.1", "id": ap_id,
-                    "created": now, "modified": now, "name": t,
-                    "external_references": [{
-                        "source_name": "mitre-attack", "external_id": t,
-                        "url": f"https://attack.mitre.org/techniques/{t.replace('.', '/')}",
-                    }],
-                })
-                add(_relationship("indicates", ind_id, ap_id, now, identity_id))
-            elif _CVE_RE.match(t):
-                v_id = _oid("vulnerability", t.upper())
-                add({
-                    "type": "vulnerability", "spec_version": "2.1", "id": v_id,
-                    "created": now, "modified": now, "name": t.upper(),
-                    "external_references": [{
-                        "source_name": "cve", "external_id": t.upper()}],
-                })
-                add(_relationship("related-to", ind_id, v_id, now, identity_id))
+        for name in malware:
+            m_id = _oid("malware", name)
+            add({
+                "type": "malware", "spec_version": "2.1", "id": m_id,
+                "created": now, "modified": now, "name": name, "is_family": True,
+            })
+            add(_relationship("indicates", ind_id, m_id, now, identity_id))
+
+        for name in actors:
+            is_id = _oid("intrusion-set", name)
+            add({
+                "type": "intrusion-set", "spec_version": "2.1", "id": is_id,
+                "created": now, "modified": now, "name": name,
+            })
+            add(_relationship("indicates", ind_id, is_id, now, identity_id))
+
+        for t in attacks:
+            ap_id = _oid("attack-pattern", t)
+            add({
+                "type": "attack-pattern", "spec_version": "2.1", "id": ap_id,
+                "created": now, "modified": now, "name": t,
+                "external_references": [{
+                    "source_name": "mitre-attack", "external_id": t,
+                    "url": f"https://attack.mitre.org/techniques/{t.replace('.', '/')}",
+                }],
+            })
+            add(_relationship("indicates", ind_id, ap_id, now, identity_id))
+
+        for t in cves:
+            v_id = _oid("vulnerability", t.upper())
+            add({
+                "type": "vulnerability", "spec_version": "2.1", "id": v_id,
+                "created": now, "modified": now, "name": t.upper(),
+                "external_references": [{
+                    "source_name": "cve", "external_id": t.upper()}],
+            })
+            add(_relationship("related-to", ind_id, v_id, now, identity_id))
 
     return {
         "type": "bundle",

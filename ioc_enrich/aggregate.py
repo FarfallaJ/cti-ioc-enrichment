@@ -29,6 +29,9 @@ class Assessment:
     sources: list[SourceResult] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
     generated: str = ""
+    # Typed threat pivots (malware / actor / attack / cve); kept last so
+    # positional construction stays compatible.
+    pivots: dict[str, list[str]] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -37,6 +40,7 @@ class Assessment:
             "verdict": self.verdict.value,
             "risk_score": self.risk_score,
             "tags": self.tags,
+            "pivots": self.pivots,
             "generated": self.generated,
             "sources": [s.to_dict() for s in self.sources],
         }
@@ -46,11 +50,17 @@ def assess(ioc: str, ioc_type: str, results: list[SourceResult]) -> Assessment:
     num = 0.0
     den = 0.0
     tags: list[str] = []
+    pivots: dict[str, list[str]] = {}
     malicious_hits = 0
     for res in results:
         for t in res.tags:
             if t and t not in tags:
                 tags.append(t)
+        for kind, vals in (res.pivots or {}).items():
+            bucket = pivots.setdefault(kind, [])
+            for v in vals:
+                if v and v not in bucket:
+                    bucket.append(v)
         if res.verdict in (Verdict.ERROR,):
             continue
         if res.verdict == Verdict.MALICIOUS:
@@ -72,6 +82,6 @@ def assess(ioc: str, ioc_type: str, results: list[SourceResult]) -> Assessment:
         verdict = Verdict.BENIGN
     return Assessment(
         ioc=ioc, ioc_type=ioc_type, verdict=verdict, risk_score=risk,
-        sources=results, tags=tags,
+        sources=results, tags=tags, pivots=pivots,
         generated=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
     )

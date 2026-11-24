@@ -102,6 +102,52 @@ def test_misp_hash_attribute_and_benign_to_ids():
     assert ev["threat_level_id"] == "3"         # benign -> Low
 
 
+# ---- typed pivots ------------------------------------------------------
+def _assess_typed():
+    s = [SourceResult("otx", "1.2.3.4", "ipv4", Verdict.MALICIOUS, 0.9, "", [], "")]
+    a = Assessment("1.2.3.4", "ipv4", Verdict.MALICIOUS, 74, s,
+                   ["HiatusRat", "Volt Typhoon", "T1090"], "now")
+    a.pivots = {"malware": ["HiatusRat"], "actor": ["Volt Typhoon"],
+                "attack": ["T1090"]}
+    return a
+
+
+def test_aggregate_merges_pivots():
+    from ioc_enrich.aggregate import assess
+    r1 = SourceResult("otx", "1.2.3.4", "ipv4", Verdict.MALICIOUS, 0.9, "")
+    r1.pivots = {"malware": ["HiatusRat"], "actor": ["Volt Typhoon"]}
+    r2 = SourceResult("abusech", "1.2.3.4", "ipv4", Verdict.MALICIOUS, 0.8, "")
+    r2.pivots = {"malware": ["HiatusRat", "KV-Botnet"]}
+    a = assess("1.2.3.4", "ipv4", [r1, r2])
+    assert a.pivots["malware"] == ["HiatusRat", "KV-Botnet"]  # union, dedup, order
+    assert a.pivots["actor"] == ["Volt Typhoon"]
+
+
+def test_stix_typed_pivots_emit_sdos():
+    objs = to_stix_bundle([_assess_typed()])["objects"]
+    types = {o["type"] for o in objs}
+    assert "malware" in types and "intrusion-set" in types
+    mal = next(o for o in objs if o["type"] == "malware")
+    assert mal["name"] == "HiatusRat" and mal["is_family"] is True
+    ins = next(o for o in objs if o["type"] == "intrusion-set")
+    assert ins["name"] == "Volt Typhoon"
+    ind = next(o for o in objs if o["type"] == "indicator")
+    # typed pivots are SDOs now, not duplicated as labels
+    assert "HiatusRat" not in ind.get("labels", [])
+    assert "Volt Typhoon" not in ind.get("labels", [])
+    indicates = [o for o in objs if o["type"] == "relationship"
+                 and o["relationship_type"] == "indicates"]
+    assert len(indicates) == 3   # malware + intrusion-set + attack-pattern
+
+
+def test_misp_typed_galaxy_tags():
+    names = [t["name"] for t in to_misp_event([_assess_typed()])["Event"]["Tag"]]
+    assert 'misp-galaxy:threat-actor="Volt Typhoon"' in names
+    assert 'misp-galaxy:malpedia="HiatusRat"' in names
+    assert any('mitre-attack-pattern="T1090"' in n for n in names)
+    assert "HiatusRat" not in names and "Volt Typhoon" not in names  # no dupes
+
+
 # ---- MCP helper --------------------------------------------------------
 def test_export_indicators_helper(monkeypatch):
     import ioc_enrich.mcp_server as station
