@@ -19,10 +19,12 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("iocs", nargs="+", help="indicators (IPs/domains/URLs/hashes)")
     p.add_argument("--title", help="brief title")
     p.add_argument("--sources", help="comma-separated subset of sources")
-    p.add_argument("--format", choices=["brief", "json", "prompt-pack"],
+    p.add_argument("--format",
+                   choices=["brief", "json", "prompt-pack", "stix", "misp"],
                    default="brief",
                    help="brief (default; auto-uses an LLM if configured), json "
-                        "(raw enrichment), or prompt-pack (paste into any AI)")
+                        "(raw enrichment), prompt-pack (paste into any AI), stix "
+                        "(STIX 2.1 bundle), or misp (MISP event JSON)")
     p.add_argument("--out", help="file path to write the output")
     args = p.parse_args(argv)
     srcs = args.sources.split(",") if args.sources else None
@@ -37,6 +39,14 @@ def main(argv: list[str] | None = None) -> int:
     elif args.format == "prompt-pack":
         out = to_prompt_pack(brief)
         note = "AI-agnostic prompt pack (no AI called)"
+    elif args.format == "stix":
+        from ..export import to_stix_bundle
+        out = json.dumps(to_stix_bundle(brief.assessments), indent=2)
+        note = "STIX 2.1 bundle"
+    elif args.format == "misp":
+        from ..export import to_misp_event
+        out = json.dumps(to_misp_event(brief.assessments, info=args.title), indent=2)
+        note = "MISP event JSON"
     else:
         out = brief.markdown
         prov = active_provider()

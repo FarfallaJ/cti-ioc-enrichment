@@ -79,6 +79,17 @@ def _generate_detections(iocs: list[str], context: str = "",
     return {"sigma": rs.sigma, "yara": rs.yara, "suricata": rs.suricata}
 
 
+def _export_indicators(iocs: list[str], fmt: str = "stix",
+                       sources: Optional[list[str]] = None,
+                       tlp: str = "amber") -> dict:
+    from .export import to_stix_bundle, to_misp_event
+    assessments = [a for a in enrich_bulk(iocs, sources=sources, workers=4)
+                   if a is not None]
+    if fmt.lower() == "misp":
+        return to_misp_event(assessments, tlp=tlp)
+    return to_stix_bundle(assessments, tlp=tlp)
+
+
 def _list_sources(check: bool = False) -> dict:
     out = {
         "version": __version__,
@@ -155,6 +166,18 @@ def build_server():
         shared label applied to the rules. Rules are drafts — review before
         deploying."""
         return _generate_detections(iocs, context, author)
+
+    @mcp.tool()
+    def export_indicators(iocs: list[str], fmt: str = "stix",
+                          sources: list[str] | None = None,
+                          tlp: str = "amber") -> dict:
+        """Enrich indicators and export them in a threat-intel interchange
+        format. fmt='stix' returns a STIX 2.1 bundle (Indicator SDOs with
+        patterns and confidence, ATT&CK attack-patterns, CVE vulnerabilities,
+        and relationships); fmt='misp' returns a MISP event. `tlp` sets the
+        marking (white/green/amber/red). Import the result into OpenCTI, MISP,
+        a TAXII server, or any platform that reads these standards."""
+        return _export_indicators(iocs, fmt, sources, tlp)
 
     @mcp.tool()
     def list_sources(check: bool = False) -> dict:

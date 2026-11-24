@@ -143,6 +143,10 @@ python -m ioc_enrich.agent 193.36.119.48 --format json
 # Detection rules from IOCs
 python -m ioc_enrich.detect 193.36.119.48 --context "Volt Typhoon" --out rules/vt/
 
+# Interop export: STIX 2.1 bundle or MISP event (for OpenCTI / MISP / TAXII)
+python -m ioc_enrich.agent 193.36.119.48 evil[.]com --format stix --out iocs.stix.json
+python -m ioc_enrich.agent 193.36.119.48 --format misp --title "Campaign X" --out event.json
+
 # Bulk: a file of indicators -> a results CSV (+ optional per-IOC briefs)
 ioc-enrich-bulk indicators.csv --out results.csv --briefs briefs/
 ```
@@ -216,6 +220,7 @@ Station publishes five tools:
 | `enrich_batch` | Enrich many indicators at once, results in input order |
 | `generate_brief` | Produce a tactical threat brief + a portable, vendor-neutral prompt pack |
 | `generate_detections` | Draft Sigma / YARA / Suricata rules, routed by indicator type |
+| `export_indicators` | Enrich and export as a STIX 2.1 bundle or a MISP event (for OpenCTI / MISP / TAXII) |
 | `list_sources` | Show configured sources, supported types, and the active LLM provider; `check=true` live-probes each key and flags invalid/expired ones |
 
 By design, `generate_brief` returns a deterministic brief **and** a `prompt_pack`
@@ -226,7 +231,7 @@ call a configured backend directly instead.)
 ## Testing
 
 ```bash
-python -m pytest        # 50 tests, all HTTP mocked (no keys or network needed)
+python -m pytest        # 59 tests, all HTTP mocked (no keys or network needed)
 ```
 
 CI runs the suite on Python 3.10–3.12 on every push.
@@ -241,6 +246,7 @@ CI runs the suite on Python 3.10–3.12 on every push.
 - [x] pip-installable package (pyproject, console commands)
 - [x] Bulk mode (CSV in, CSV + per-IOC briefs out)
 - [x] MCP server (Station) — expose the toolkit to any MCP client
+- [x] STIX 2.1 / MISP export for threat-intel platform interoperability
 - [ ] Censys + passive-DNS sources
 
 ## Disclaimer
