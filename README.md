@@ -184,7 +184,9 @@ pip install -e ".[mcp]"
 ioc-enrich-mcp            # runs over stdio
 ```
 
-Add it to Claude Desktop's `claude_desktop_config.json`:
+Add it to Claude Desktop's `claude_desktop_config.json`. Point `IOC_ENRICH_ENV`
+at your existing `.env` so Station reuses the same keys as the CLI — no need to
+copy secrets into the config:
 
 ```json
 {
@@ -192,16 +194,18 @@ Add it to Claude Desktop's `claude_desktop_config.json`:
     "station": {
       "command": "ioc-enrich-mcp",
       "env": {
-        "VT_API_KEY": "your-key",
-        "OTX_API_KEY": "your-key"
+        "IOC_ENRICH_ENV": "/absolute/path/to/your/.env"
       }
     }
   }
 }
 ```
 
-Keys are optional — the three keyless sources always run, and the `env` block is
-read exactly like `.env` for the CLI. Station publishes five tools:
+Keys are optional — the three keyless sources always run. Station loads keys
+from (highest priority first) real environment variables, then `$IOC_ENRICH_ENV`,
+then a project-local `.env`, then `~/.config/cti-ioc-enrichment/.env`. You can
+also list individual keys directly in the `env` block instead of using a file.
+Station publishes five tools:
 
 | Tool | What it does |
 |---|---|
@@ -219,7 +223,7 @@ call a configured backend directly instead.)
 ## Testing
 
 ```bash
-python -m pytest        # 38 tests, all HTTP mocked (no keys or network needed)
+python -m pytest        # 42 tests, all HTTP mocked (no keys or network needed)
 ```
 
 CI runs the suite on Python 3.10–3.12 on every push.
