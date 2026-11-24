@@ -90,6 +90,14 @@ def _export_indicators(iocs: list[str], fmt: str = "stix",
     return to_stix_bundle(assessments, tlp=tlp)
 
 
+def _triage(iocs: list[str], sources: Optional[list[str]] = None,
+            use_llm: bool = False, tlp: str = "amber",
+            include_misp: bool = False) -> dict:
+    from .triage import triage
+    return triage(iocs, sources=sources, use_llm=use_llm, tlp=tlp,
+                  include_misp=include_misp)
+
+
 def _list_sources(check: bool = False) -> dict:
     out = {
         "version": __version__,
@@ -166,6 +174,20 @@ def build_server():
         shared label applied to the rules. Rules are drafts — review before
         deploying."""
         return _generate_detections(iocs, context, author)
+
+    @mcp.tool()
+    def triage(iocs: list[str], sources: list[str] | None = None,
+               use_llm: bool = False, tlp: str = "amber",
+               include_misp: bool = False) -> dict:
+        """One-call triage: enrich the indicators once and return a single
+        structured intelligence product — `summary` (counts, verdict
+        breakdown, peak risk), `assessments` (per-indicator enrichment with
+        typed pivots), `brief` (tactical Markdown + a portable prompt pack),
+        `detections` (Sigma/YARA/Suricata), and `stix` (a STIX 2.1 bundle;
+        set include_misp=True to add a MISP event). Use this to get everything
+        on a set of indicators in one response instead of calling the other
+        tools separately."""
+        return _triage(iocs, sources, use_llm, tlp, include_misp)
 
     @mcp.tool()
     def export_indicators(iocs: list[str], fmt: str = "stix",

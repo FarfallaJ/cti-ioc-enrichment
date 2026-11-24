@@ -143,6 +143,9 @@ python -m ioc_enrich.agent 193.36.119.48 --format json
 # Detection rules from IOCs
 python -m ioc_enrich.detect 193.36.119.48 --context "Volt Typhoon" --out rules/vt/
 
+# Composite triage: one structured product (enrichment + brief + detections + STIX)
+python -m ioc_enrich.agent 193.36.119.48 --format triage --out triage.json
+
 # Interop export: STIX 2.1 bundle or MISP event (for OpenCTI / MISP / TAXII)
 python -m ioc_enrich.agent 193.36.119.48 evil[.]com --format stix --out iocs.stix.json
 python -m ioc_enrich.agent 193.36.119.48 --format misp --title "Campaign X" --out event.json
@@ -216,6 +219,7 @@ Station publishes five tools:
 
 | Tool | What it does |
 |---|---|
+| `triage` | **One call → one product**: enrich once and return summary, assessments, a brief (+ prompt pack), Sigma/YARA/Suricata detections, and a STIX 2.1 bundle |
 | `enrich_ioc` | Enrich one indicator → weighted verdict, 0–100 risk, per-source findings, pivot tags |
 | `enrich_batch` | Enrich many indicators at once, results in input order |
 | `generate_brief` | Produce a tactical threat brief + a portable, vendor-neutral prompt pack |
@@ -231,7 +235,7 @@ call a configured backend directly instead.)
 ## Testing
 
 ```bash
-python -m pytest        # 63 tests, all HTTP mocked (no keys or network needed)
+python -m pytest        # 68 tests, all HTTP mocked (no keys or network needed)
 ```
 
 CI runs the suite on Python 3.10–3.12 on every push.
@@ -247,6 +251,7 @@ CI runs the suite on Python 3.10–3.12 on every push.
 - [x] Bulk mode (CSV in, CSV + per-IOC briefs out)
 - [x] MCP server (Station) — expose the toolkit to any MCP client
 - [x] STIX 2.1 / MISP export for threat-intel platform interoperability
+- [x] Composite triage (one call → enrichment + brief + detections + STIX)
 - [ ] Censys + passive-DNS sources
 
 ## Disclaimer

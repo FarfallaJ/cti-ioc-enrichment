@@ -160,11 +160,10 @@ def _deterministic_brief(title: str, assessments: list[Assessment]) -> str:
     return "\n".join(L)
 
 
-def produce_brief(iocs: list[str], title: str | None = None,
-                  sources: list[str] | None = None,
-                  synthesize_llm: bool = True) -> Brief:
-    assessments = [enrich(i, sources) for i in iocs]
-    title = title or f"Tactical Threat Brief — {len(iocs)} indicator(s)"
+def brief_from_assessments(assessments: list[Assessment], title: str | None = None,
+                           synthesize_llm: bool = True) -> Brief:
+    """Build a Brief from already-enriched assessments (no re-enrichment)."""
+    title = title or f"Tactical Threat Brief — {len(assessments)} indicator(s)"
     deterministic = _deterministic_brief(title, assessments)
     data = json.dumps([a.to_dict() for a in assessments], indent=2)
     system, user = build_prompt(title, data)
@@ -174,6 +173,13 @@ def produce_brief(iocs: list[str], title: str | None = None,
         narrative=narrative or "", deterministic=deterministic,
         used_llm=bool(narrative),
     )
+
+
+def produce_brief(iocs: list[str], title: str | None = None,
+                  sources: list[str] | None = None,
+                  synthesize_llm: bool = True) -> Brief:
+    assessments = [enrich(i, sources) for i in iocs]
+    return brief_from_assessments(assessments, title, synthesize_llm)
 
 
 def to_prompt_pack(brief: "Brief") -> str:

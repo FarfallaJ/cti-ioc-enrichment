@@ -20,14 +20,30 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--title", help="brief title")
     p.add_argument("--sources", help="comma-separated subset of sources")
     p.add_argument("--format",
-                   choices=["brief", "json", "prompt-pack", "stix", "misp"],
+                   choices=["brief", "json", "prompt-pack", "stix", "misp", "triage"],
                    default="brief",
                    help="brief (default; auto-uses an LLM if configured), json "
                         "(raw enrichment), prompt-pack (paste into any AI), stix "
-                        "(STIX 2.1 bundle), or misp (MISP event JSON)")
+                        "(STIX 2.1 bundle), misp (MISP event JSON), or triage "
+                        "(one structured product: enrichment + brief + detections + STIX)")
     p.add_argument("--out", help="file path to write the output")
     args = p.parse_args(argv)
     srcs = args.sources.split(",") if args.sources else None
+
+    if args.format == "triage":
+        from ..triage import triage as run_triage
+        out = json.dumps(run_triage(args.iocs, sources=srcs, title=args.title),
+                         indent=2)
+        print(out)
+        print("\n[format: triage · enrichment + brief + detections + STIX]",
+              file=sys.stderr)
+        if args.out:
+            d = os.path.dirname(os.path.abspath(args.out))
+            os.makedirs(d, exist_ok=True)
+            with open(args.out, "w", encoding="utf-8") as f:
+                f.write(out)
+            print(f"[written: {args.out}]", file=sys.stderr)
+        return 0
 
     # Only the default brief may call an LLM; json and prompt-pack never do.
     use_llm = args.format == "brief"
