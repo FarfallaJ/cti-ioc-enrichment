@@ -31,7 +31,8 @@ dependencies = [
 
 [project.optional-dependencies]
 gui = ["streamlit>=1.30.0"]
-dev = ["pytest>=7.0", "pyyaml>=6.0"]
+mcp = ["mcp>=1.2.0"]
+dev = ["pytest>=7.0", "pyyaml>=6.0", "mcp>=1.2.0"]
 
 [project.urls]
 Homepage = "https://github.com/FarfallaJ/cti-ioc-enrichment"
@@ -43,6 +44,7 @@ ioc-enrich = "ioc_enrich.cli:main"
 ioc-enrich-agent = "ioc_enrich.agent.cli:main"
 ioc-enrich-detect = "ioc_enrich.detect.cli:main"
 ioc-enrich-bulk = "ioc_enrich.bulk:main"
+ioc-enrich-mcp = "ioc_enrich.mcp_server:main"
 
 [tool.setuptools.dynamic]
 version = { attr = "ioc_enrich.__version__" }

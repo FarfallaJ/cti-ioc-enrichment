@@ -1,0 +1,4 @@
+# Station MCP server — extra dependency.
+# Install alongside the base requirements:  pip install -r requirements.txt -r requirements-mcp.txt
+# Or, preferred:  pip install "cti-ioc-enrichment[mcp]"
+mcp>=1.2.0

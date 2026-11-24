@@ -173,10 +173,53 @@ streamlit run app.py
 It runs locally and reads your keys exactly like the CLI — nothing is sent
 anywhere but the source APIs.
 
+## MCP server (Station)
+
+**Station** exposes the whole toolkit to any [Model Context Protocol](https://modelcontextprotocol.io)
+client — Claude Desktop, MCP-aware IDEs, or your own agents — so an assistant can
+enrich indicators, write briefs, and draft detections as native tools.
+
+```bash
+pip install -e ".[mcp]"
+ioc-enrich-mcp            # runs over stdio
+```
+
+Add it to Claude Desktop's `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "station": {
+      "command": "ioc-enrich-mcp",
+      "env": {
+        "VT_API_KEY": "your-key",
+        "OTX_API_KEY": "your-key"
+      }
+    }
+  }
+}
+```
+
+Keys are optional — the three keyless sources always run, and the `env` block is
+read exactly like `.env` for the CLI. Station publishes five tools:
+
+| Tool | What it does |
+|---|---|
+| `enrich_ioc` | Enrich one indicator → weighted verdict, 0–100 risk, per-source findings, pivot tags |
+| `enrich_batch` | Enrich many indicators at once, results in input order |
+| `generate_brief` | Produce a tactical threat brief + a portable, vendor-neutral prompt pack |
+| `generate_detections` | Draft Sigma / YARA / Suricata rules, routed by indicator type |
+| `list_sources` | Show configured sources, supported types, and the active LLM provider |
+
+By design, `generate_brief` returns a deterministic brief **and** a `prompt_pack`
+rather than calling a second model — the client talking to Station is already an
+LLM, so it synthesizes the narrative itself. (Set `use_llm=True` to have Station
+call a configured backend directly instead.)
+
 ## Testing
 
 ```bash
-python -m pytest        # 24 tests, all HTTP mocked (no keys or network needed)
+python -m pytest        # 38 tests, all HTTP mocked (no keys or network needed)
 ```
 
 CI runs the suite on Python 3.10–3.12 on every push.
@@ -190,6 +233,7 @@ CI runs the suite on Python 3.10–3.12 on every push.
 - [x] Streamlit GUI
 - [x] pip-installable package (pyproject, console commands)
 - [x] Bulk mode (CSV in, CSV + per-IOC briefs out)
+- [x] MCP server (Station) — expose the toolkit to any MCP client
 - [ ] Censys + passive-DNS sources
 
 ## Disclaimer
