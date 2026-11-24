@@ -122,6 +122,9 @@ ioc_enrich/
 # Check which sources are configured for you
 python -m ioc_enrich --status
 
+# Live-probe each key to catch invalid/expired ones (1 API call per source)
+python -m ioc_enrich --status --check
+
 # Enrich a single indicator (Markdown brief)
 python -m ioc_enrich 193.36.119.48
 
@@ -213,7 +216,7 @@ Station publishes five tools:
 | `enrich_batch` | Enrich many indicators at once, results in input order |
 | `generate_brief` | Produce a tactical threat brief + a portable, vendor-neutral prompt pack |
 | `generate_detections` | Draft Sigma / YARA / Suricata rules, routed by indicator type |
-| `list_sources` | Show configured sources, supported types, and the active LLM provider |
+| `list_sources` | Show configured sources, supported types, and the active LLM provider; `check=true` live-probes each key and flags invalid/expired ones |
 
 By design, `generate_brief` returns a deterministic brief **and** a `prompt_pack`
 rather than calling a second model — the client talking to Station is already an
@@ -223,7 +226,7 @@ call a configured backend directly instead.)
 ## Testing
 
 ```bash
-python -m pytest        # 42 tests, all HTTP mocked (no keys or network needed)
+python -m pytest        # 50 tests, all HTTP mocked (no keys or network needed)
 ```
 
 CI runs the suite on Python 3.10–3.12 on every push.

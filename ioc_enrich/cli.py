@@ -13,17 +13,32 @@ from .report import to_markdown
 from .config import available_sources, source_status, KEYLESS
 
 
-def _print_status() -> None:
+def _print_status(live: bool = False) -> None:
     st = source_status()
     active = available_sources()
+    health = None
+    if live:
+        from .check import check_sources
+        print("Probing each source with a live request...\n")
+        health = check_sources()
     print("Source configuration:\n")
+    _HEALTH = {"ok": "✓ working", "invalid-key": "✗ KEY REJECTED",
+               "rate-limited": "~ rate-limited", "unreachable": "? unreachable",
+               "missing-key": "· no key", "unknown-source": "? unknown"}
     for src, state in st.items():
         mark = {"configured": "✓ key set ", "keyless": "○ keyless  ",
                 "missing-key": "· no key  "}[state]
-        print(f"  {mark} {src}")
+        if health is not None:
+            print(f"  {mark} {src:12} [{_HEALTH.get(health.get(src, ''), health.get(src, ''))}]")
+        else:
+            print(f"  {mark} {src}")
     keyed_active = [s for s in active if s not in KEYLESS]
     print(f"\nActive now: {len(active)} source(s) "
           f"({len(keyed_active)} keyed + {len(KEYLESS)} keyless).")
+    if health is not None:
+        bad = [s for s, h in health.items() if h == "invalid-key"]
+        if bad:
+            print(f"\n⚠  Key rejected by: {', '.join(bad)} — regenerate and update .env.")
     if not keyed_active:
         print("\nNo API keys detected — the tool still runs using the keyless\n"
               "sources (crt.sh, RDAP, Shodan InternetDB). To unlock the rest:\n"
@@ -39,13 +54,16 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("ioc", nargs="?", help="indicator to enrich (defanged input OK)")
     p.add_argument("--status", action="store_true",
                    help="show which sources are configured, then exit")
+    p.add_argument("--check", action="store_true",
+                   help="with --status, live-probe each key (1 API call/source) "
+                        "to flag invalid or expired keys")
     p.add_argument("--json", action="store_true", help="emit JSON instead of Markdown")
     p.add_argument("--sources", help="comma-separated subset to use")
     p.add_argument("--out", help="directory to also write the report into")
     args = p.parse_args(argv)
 
-    if args.status:
-        _print_status()
+    if args.status or args.check:
+        _print_status(live=args.check)
         return 0
     if not args.ioc:
         p.error("an indicator is required (or use --status)")

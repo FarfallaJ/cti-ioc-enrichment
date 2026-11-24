@@ -79,13 +79,17 @@ def _generate_detections(iocs: list[str], context: str = "",
     return {"sigma": rs.sigma, "yara": rs.yara, "suricata": rs.suricata}
 
 
-def _list_sources() -> dict:
-    return {
+def _list_sources(check: bool = False) -> dict:
+    out = {
         "version": __version__,
         "status": source_status(),
         "supports": {name: sorted(types) for name, types in SUPPORTS.items()},
         "active_llm_provider": active_provider(),
     }
+    if check:
+        from .check import check_sources
+        out["health"] = check_sources()
+    return out
 
 
 # --------------------------------------------------------------------------- #
@@ -153,12 +157,15 @@ def build_server():
         return _generate_detections(iocs, context, author)
 
     @mcp.tool()
-    def list_sources() -> dict:
+    def list_sources(check: bool = False) -> dict:
         """List every enrichment source, whether its API key is configured
         ('configured' / 'missing-key' / 'keyless'), which indicator types each
         supports, and the active LLM provider (if any). Use this to see what
-        Station can do before enriching."""
-        return _list_sources()
+        Station can do before enriching. Set check=True to also live-probe each
+        source (one API call each) and include a 'health' map marking keys as
+        ok / invalid-key / rate-limited / unreachable — use it to catch an
+        expired key, which otherwise still shows as 'configured'."""
+        return _list_sources(check)
 
     return mcp
 
