@@ -30,16 +30,45 @@ def _deterministic_brief(title: str, assessments: list[Assessment]) -> str:
     worst = max((a.risk_score for a in assessments), default=0)
     mal = [a for a in assessments if a.verdict == Verdict.MALICIOUS]
     susp = [a for a in assessments if a.verdict == Verdict.SUSPICIOUS]
-    # Collect pivots
-    malware, adversaries, attack, ports = set(), set(), set(), set()
+    # Typed pivots (preferred), merged across all indicators.
+    def _merge(key: str) -> list[str]:
+        out: list[str] = []
+        for a in assessments:
+            for v in (a.pivots or {}).get(key, []):
+                if v and v not in out:
+                    out.append(v)
+        return out
+    piv_malware = _merge("malware")
+    piv_actor = _merge("actor")
+    piv_attack = _merge("attack")
+    piv_cve = _merge("cve")
+    ports: set[str] = set()
     for a in assessments:
         for t in a.tags:
-            if t.upper().startswith("T") and t[1:].split(".")[0].isdigit():
-                attack.add(t)
-            elif t.startswith("port:"):
+            if t.startswith("port:"):
                 ports.add(t.split(":", 1)[1])
-            elif t.startswith("CVE") or t.startswith("cve"):
-                attack.add(t)
+    # Tag fallbacks so ATT&CK/CVE still show if a source didn't type them.
+    for a in assessments:
+        for t in a.tags:
+            tu = t.upper()
+            if tu.startswith("T") and t[1:2].isdigit() and t not in piv_attack:
+                piv_attack.append(t)
+            elif tu.startswith("CVE") and tu not in (c.upper() for c in piv_cve):
+                piv_cve.append(t)
+    # If no source typed malware/actor, fall back to untyped named tags.
+    untyped: list[str] = []
+    if not piv_actor and not piv_malware:
+        _noise = ("internet-scanner", "common-business-service", "tor-exit",
+                  "data-center/web-hosting/transit")
+        for a in assessments:
+            for t in a.tags:
+                tu = t.upper()
+                if (t.startswith("port:") or tu.startswith("CVE")
+                        or (tu.startswith("T") and t[1:2].isdigit())
+                        or t in _noise):
+                    continue
+                if t not in untyped:
+                    untyped.append(t)
     L = []
     L.append(f"# {title}")
     L.append("")
@@ -77,33 +106,29 @@ def _deterministic_brief(title: str, assessments: list[Assessment]) -> str:
     if not any(a.verdict.value in ("malicious", "suspicious") for a in assessments):
         L.append("- No adverse findings from the configured sources.")
     L.append("")
-    if adversaries or malware:
-        L.append("## Attribution Assessment")
+    if piv_actor:
+        L.append("## Attribution")
         L.append("")
-        if adversaries:
-            L.append(f"- Linked adversary(ies): {', '.join(sorted(adversaries))} "
-                     "*(OTX community pulses — corroborate before relying on it)*.")
-        if malware:
-            L.append(f"- Associated malware: {', '.join(sorted(malware))}.")
+        L.append("Linked threat actor(s): "
+                 + ", ".join(f"`{x}`" for x in piv_actor)
+                 + " *(enrichment leads — corroborate before relying on them)*.")
         L.append("")
-    # gather adversary/malware from tags that aren't attack/port/cve
-    adv_mal = set()
-    for a in assessments:
-        for t in a.tags:
-            if not (t.startswith("port:") or t.upper().startswith("CVE")
-                    or (t.upper().startswith("T") and t[1:2].isdigit())
-                    or t in ("internet-scanner", "common-business-service", "tor-exit")):
-                adv_mal.add(t)
-    if adv_mal:
+    if piv_malware:
+        L.append("## Associated Malware")
+        L.append("")
+        L.append(", ".join(f"`{x}`" for x in piv_malware) + ".")
+        L.append("")
+    if untyped:
         L.append("## Attribution & Malware Signals")
         L.append("")
         L.append("Pivots surfaced by enrichment (treat as leads, verify independently): "
-                 + ", ".join(f"`{t}`" for t in sorted(adv_mal)))
+                 + ", ".join(f"`{t}`" for t in untyped))
         L.append("")
-    if attack:
+    if piv_attack or piv_cve:
         L.append("## MITRE ATT&CK / CVE References")
         L.append("")
-        L.append(" ".join(f"`{t}`" for t in sorted(attack)))
+        refs = sorted(piv_attack) + sorted({c.upper() for c in piv_cve})
+        L.append(" ".join(f"`{t}`" for t in refs))
         L.append("")
     if ports:
         L.append("## Exposed Services (Shodan)")

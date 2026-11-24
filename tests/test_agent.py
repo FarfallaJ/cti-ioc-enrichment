@@ -23,6 +23,25 @@ def test_produce_brief_deterministic(monkeypatch):
     assert "Recommended Actions" in b.markdown
 
 
+def test_brief_uses_typed_pivots(monkeypatch):
+    def _fake_typed(ioc, sources=None):
+        s = [SourceResult("otx", ioc, "ipv4", Verdict.MALICIOUS, 0.9, "6 pulses",
+                          ["HiatusRat", "Volt Typhoon", "T1090"], "https://otx/x")]
+        a = Assessment(ioc, "ipv4", Verdict.MALICIOUS, 74, s,
+                       ["HiatusRat", "Volt Typhoon", "T1090"], "now")
+        a.pivots = {"malware": ["HiatusRat"], "actor": ["Volt Typhoon"],
+                    "attack": ["T1090"]}
+        return a
+    monkeypatch.setattr(orch, "enrich", _fake_typed)
+    monkeypatch.setattr(orch, "synthesize", lambda s, u: None)
+    md = orch.produce_brief(["1.2.3.4"], title="T").markdown
+    assert "## Attribution" in md and "Volt Typhoon" in md
+    assert "## Associated Malware" in md and "HiatusRat" in md
+    assert "T1090" in md
+    # typed actor/malware shouldn't also appear in the untyped fallback block
+    assert "## Attribution & Malware Signals" not in md
+
+
 def test_prompt_pack_is_vendor_neutral(monkeypatch):
     import ioc_enrich.agent.orchestrate as o
     monkeypatch.setattr(o, "enrich", _fake)
